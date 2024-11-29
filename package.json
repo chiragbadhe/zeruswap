@@ -9,18 +9,28 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@reown/appkit": "^1.5.2",
+    "@reown/appkit-adapter-wagmi": "^1.5.2",
+    "@tanstack/react-query": "^5.61.5",
+    "@uniswap/sdk-core": "^6.0.0",
+    "@uniswap/v3-sdk": "^3.19.0",
+    "ethers": "^6.13.4",
+    "lucide-react": "^0.462.0",
+    "next": "15.0.3",
+    "pino-pretty": "^13.0.0",
     "react": "19.0.0-rc-66855b96-20241106",
     "react-dom": "19.0.0-rc-66855b96-20241106",
-    "next": "15.0.3"
+    "viem": "^2.21.52",
+    "wagmi": "^2.13.2"
   },
   "devDependencies": {
-    "typescript": "^5",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "15.0.3",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "eslint": "^8",
-    "eslint-config-next": "15.0.3"
+    "typescript": "^5"
   }
 }
