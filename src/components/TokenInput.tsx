@@ -26,7 +26,6 @@ function TokenInput({
   const {
     price: tokenInPrice,
     loading,
-    error,
   } = useTokenPrice(tokenIn?.address || null);
 
   return (

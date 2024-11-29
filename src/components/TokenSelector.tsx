@@ -4,6 +4,10 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useSwapStore, Token } from "../store/swap";
 import { X } from "lucide-react";
 
+interface TokenData {
+  tokens: Token[];
+}
+
 function TokenSelector({ type }: { type: "in" | "out" }) {
   const [search, setSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -13,10 +17,10 @@ function TokenSelector({ type }: { type: "in" | "out" }) {
   const fetchTokens = useCallback(async () => {
     try {
       const response = await fetch("https://tokens.uniswap.org");
-      const data = await response.json();
+      const data: TokenData = await response.json();
       // Filter tokens for chainId 1 only
       const filteredTokens = data.tokens.filter(
-        (token: any) => token.chainId === 1
+        (token: Token) => token.chainId === 1
       );
       setTokens(filteredTokens);
     } catch (error) {

@@ -29,7 +29,6 @@ const PredefinedOption: FC<PredefinedOptionProps> = ({
 const SwapSlippage = () => {
   const { slippage, setSlippage } = useSwapStore();
   const [isCustomSelected, setIsCustomSelected] = useState(false);
-  const [selectedButton, setSelectedButton] = useState<number | null>(null);
 
   const setSlippageValue = (value: number) => {
     setIsCustomSelected(false);
@@ -37,7 +36,6 @@ const SwapSlippage = () => {
   };
 
   const handleButtonClick = (value: number) => {
-    setSelectedButton(value);
     setSlippageValue(value);
   };
 
@@ -73,7 +71,6 @@ const SwapSlippage = () => {
             isCustomSelected ? "rounded-md border-white/20 border " : ""
           }`}
           onClick={() => {
-            setSelectedButton(null);
             setIsCustomSelected(true);
             setSlippage(0);
           }}
@@ -91,7 +88,6 @@ const SwapSlippage = () => {
               !isCustomSelected ? "cursor-not-allowed" : "cursor-text"
             } w-full  bg-transparent px-[12px]  focus:outline-none`}
             onChange={(event) => {
-              setSelectedButton(null);
               setIsCustomSelected(true);
               setSlippage(Number(event.target.value));
             }}

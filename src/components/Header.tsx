@@ -7,7 +7,7 @@ export default function Header() {
       <div className="container mx-auto max-w-7xl flex  items-center justify-between p-4">
         <div className="flex items-center">
           <Link href="/">
-            <img src="/main-logo.svg" alt="Logo" width={150} />
+            <Image src="/main-logo.svg" alt="Logo" width={150} height={41} />
           </Link>
         </div>
         <div>

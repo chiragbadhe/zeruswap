@@ -1,7 +1,6 @@
-// context/index.tsx
 "use client";
 
-import { wagmiAdapter, projectId } from "@/config/reown.config";
+import { wagmiAdapter, projectId } from "@/config/reown";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createAppKit } from "@reown/appkit/react";
 import {
@@ -31,7 +30,7 @@ const metadata = {
 };
 
 // Create the modal
-const modal = createAppKit({
+createAppKit({
   adapters: [wagmiAdapter],
   themeVariables: {
     "--w3m-accent": "#6D28D9",

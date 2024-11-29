@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 export interface Token {
+  chainId: number;
   symbol: string;
   name: string;
   address: string;

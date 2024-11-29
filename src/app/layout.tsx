@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import ReownContext from "@/context/reownContext";
+import ReownContext from "@/context";
 import { headers } from "next/headers";
 
 const clashDisplay = localFont({
