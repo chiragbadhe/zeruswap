@@ -1,5 +1,5 @@
 import { useSwapStore } from "@/store/swap";
-import { isNativeToken } from "@/utils";
+import { isNativeToken } from "@/helper";
 import { useMemo } from "react";
 import { useAccount, useBalance } from "wagmi";
 

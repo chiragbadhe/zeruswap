@@ -1,48 +1,41 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useSwapStore } from "../store/swap";
-import TokenSelector from "./TokenSelector";
 import TokenInput from "./TokenInput";
 import { ArrowDownUp } from "lucide-react";
-import { useBalanceByTokenType } from "@/hooks/useBalanceByTokenType";
 import SwapSlippage from "./SlippageCustom";
+import { useAccount } from "wagmi";
 
 const SwapInterface: React.FC = () => {
   const {
     tokenIn,
     tokenOut,
     amount,
-    slippage,
     priceImpact,
     transactionStatus,
     setAmount,
-    setSlippage,
     setTransactionStatus,
     setTokenIn,
     setTokenOut,
   } = useSwapStore();
 
-  const { balance, isLoading } = useBalanceByTokenType();
+  const [amountOut, setAmountOut] = useState<string>("");
+  const { isConnected } = useAccount();
 
-  const handleSwap = () => {
+  const handleSwap = async () => {
     if (!tokenIn || !tokenOut || !amount) {
       setTransactionStatus("Please fill in all fields");
       return;
     }
     setTransactionStatus("Swapping...");
-    setTimeout(() => {
-      setTransactionStatus("Swap successful!");
-    }, 2000);
   };
 
   const handleInterchange = () => {
-    console.log(tokenIn, tokenOut);
-    if (tokenOut) {
+    if (tokenOut && tokenIn) {
       setTokenIn(tokenOut);
-    }
-    if (tokenIn) {
       setTokenOut(tokenIn);
+      setAmountOut("");
     }
   };
 
@@ -51,12 +44,14 @@ const SwapInterface: React.FC = () => {
       <h2 className="text-2xl font-semibold text-left mb-6 underline decoration-purple-700 underline-offset-2 opacity-70">
         Token Swap
       </h2>
+
       <div className="relative">
         <TokenInput
           type="in"
           amount={amount}
           setAmount={(value) => setAmount(value.toString())}
           text="Pay"
+          disabled={false}
         />
 
         <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 top-1/2">
@@ -70,9 +65,10 @@ const SwapInterface: React.FC = () => {
 
         <TokenInput
           type="out"
-          amount={amount}
+          amount={amountOut}
           setAmount={(value) => setAmount(value.toString())}
           text="Receive"
+          disabled={true}
         />
       </div>
 
@@ -102,12 +98,22 @@ const SwapInterface: React.FC = () => {
         </p>
       </div>
 
-      <button
-        onClick={handleSwap}
-        className="w-full bg-violet-700 text-white py-3 px-4 rounded hover:bg-violet-600 transition duration-300"
-      >
-        Swap
-      </button>
+      {isConnected ? (
+        <button
+          onClick={handleSwap}
+          className="w-full bg-violet-700 text-white py-3 px-4 rounded hover:bg-violet-600 transition duration-300"
+        >
+          Swap
+        </button>
+      ) : (
+        <button
+          disabled
+          className="w-full bg-gray-500 text-white py-3 px-4 rounded"
+        >
+          Please connect wallet first
+        </button>
+      )}
+
       {transactionStatus && (
         <p className="mt-4 text-center text-sm text-gray-500">
           {transactionStatus}

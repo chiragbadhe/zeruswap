@@ -14,7 +14,11 @@ function TokenSelector({ type }: { type: "in" | "out" }) {
     try {
       const response = await fetch("https://tokens.uniswap.org");
       const data = await response.json();
-      setTokens(data.tokens);
+      // Filter tokens for chainId 1 only
+      const filteredTokens = data.tokens.filter(
+        (token: any) => token.chainId === 1
+      );
+      setTokens(filteredTokens);
     } catch (error) {
       console.error("Error fetching tokens:", error);
     }
