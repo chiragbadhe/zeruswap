@@ -6,16 +6,24 @@ import { useAccount, useReadContract, useSendTransaction } from "wagmi";
 import TokenInputWrapper from "./TokenInputWrapper";
 import SlippageSetting from "../SlippageSetting";
 import SwapButton from "./SwapButton";
-import PriceImpactDisplay from "./PriceImpactDisplay";
+import PriceImpactDisplay from "./DisplayData";
 import { parseUnits } from "viem";
 import useQuote from "@/hooks/useQuote";
 import { Pool, Route, SwapOptions, SwapRouter, Trade } from "@uniswap/v3-sdk";
-import { CurrencyAmount, Percent, Token, TradeType } from "@uniswap/sdk-core";
+import {
+  CurrencyAmount,
+  Percent,
+  Token,
+  TradeType,
+  computePriceImpact,
+} from "@uniswap/sdk-core";
 import IUniswapV3PoolABI from "@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json";
 import { UNISWAP_ROUTER_ADDRESS } from "@/lib/utils/constants";
 import useGasFee from "@/hooks/useGasFee";
 import { showToast } from "@/lib/utils/toast";
 import TokenPairAnalytics from "../Analytics";
+import DisplayData from "./DisplayData";
+import { useGasEstimate } from "@/hooks/useGasEstimate";
 
 const SwapInterface: React.FC = () => {
   const {
@@ -37,6 +45,10 @@ const SwapInterface: React.FC = () => {
 
   const { maxFeePerGas, maxPriorityFeePerGas } = useGasFee();
   const { sendTransaction } = useSendTransaction();
+
+  console.log(tokenIn, tokenOut);
+
+  const { gasEstimate, estimateGasCost, error } = useGasEstimate();
 
   const { formattedQuote: quoteData, isLoading: isQuoteLoading } = useQuote(
     tokenIn?.address as `0x${string}`,
@@ -121,6 +133,16 @@ const SwapInterface: React.FC = () => {
         tradeType: TradeType.EXACT_INPUT,
       });
 
+      const priceImpact = uncheckedTrade.priceImpact.toSignificant(4);
+
+      const swapRouteDetails = swapRoute.pools.map((pool) => ({
+        token0: pool.token0.symbol,
+        token1: pool.token1.symbol,
+        fee: pool.fee,
+      }));
+
+      console.log(priceImpact, swapRouteDetails);
+
       const options: SwapOptions = {
         slippageTolerance: new Percent(Math.floor(slippage * 100)),
         deadline: Math.floor(Date.now() / 1000) + 60 * 20,
@@ -132,13 +154,22 @@ const SwapInterface: React.FC = () => {
         options
       );
 
-      sendTransaction({
-        data: methodParameters.calldata as `0x${string}`,
+      await estimateGasCost({
         to: UNISWAP_ROUTER_ADDRESS,
+        data: methodParameters.calldata as `0x${string}`,
         value: BigInt(methodParameters.value),
-        maxFeePerGas: maxFeePerGas,
-        maxPriorityFeePerGas: maxPriorityFeePerGas,
+        maxFeePerGas: maxPriorityFeePerGas,
       });
+
+      console.log(priceImpact, swapRouteDetails, gasEstimate);
+
+      // sendTransaction({
+      //   data: methodParameters.calldata as `0x${string}`,
+      //   to: UNISWAP_ROUTER_ADDRESS,
+      //   value: BigInt(methodParameters.value),
+      //   maxFeePerGas: maxFeePerGas,
+      //   maxPriorityFeePerGas: maxPriorityFeePerGas,
+      // });
     } catch (error: unknown) {
       console.error("Swap Preparation Error:", error);
       showToast("error", "Swap failed: " + (error as Error).message);
@@ -167,8 +198,8 @@ const SwapInterface: React.FC = () => {
   };
 
   return (
-    <div className="flex-col flex sm:flex-row items-start justify-center p-6">
-      <div className="md:mx-[12px] mb-[50px] shadow-lg rounded-lg bg-[#1A1D1F]/50 p-6 border border-white/10">
+    <div className="flex-col px-[12px] md:space-x-[12px] space-x-0 flex sm:flex-row items-start justify-center py-6 container max-w-7xl mx-auto">
+      <div className="mb-[50px] w-full md:w-[500px] shadow-lg rounded-lg bg-[#1A1D1F]/50 p-6 border border-white/10">
         <h2 className="text-2xl font-semibold text-left mb-6 underline decoration-purple-700 underline-offset-2 opacity-70">
           Token Swap
         </h2>
@@ -176,14 +207,17 @@ const SwapInterface: React.FC = () => {
         <TokenInputWrapper
           amount={amount}
           amountOut={quoteData}
-          isLoading={isQuoteLoading}
+          isLoading={!!tokenIn && !!tokenOut ? isQuoteLoading : false}
           setAmount={setAmount}
           setAmountOut={setAmountOut}
           handleInterchange={handleInterchange}
         />
 
         <SlippageSetting />
-        <PriceImpactDisplay priceImpact={priceImpact} />
+        <DisplayData text="Price Impact" value={priceImpact} />
+        <DisplayData text="Gas Estimation" value={priceImpact} />
+        <DisplayData text="Route" value={priceImpact} />
+
         <SwapButton
           transactionStatus={transactionStatus}
           isConnected={isConnected}
@@ -191,7 +225,7 @@ const SwapInterface: React.FC = () => {
         />
       </div>
       <div
-        className={`transition-opacity duration-300 ${
+        className={`transition-opacity duration-300 w-full md:w-auto ${
           showAnalytics ? "opacity-100" : "opacity-0"
         }`}
       >

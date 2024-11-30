@@ -2,23 +2,28 @@
 import { FC, useState, ChangeEvent } from "react";
 import { useSwapStore } from "@/store/swap";
 import PredefinedOption from "@/components/SlippageSetting/PredefinedOption";
+import { useAccount } from "wagmi";
 
 const predefinedSlippageOptions = [0.1, 0.5, 1];
 
 const SwapSlippage: FC = () => {
   const { slippage, setSlippage } = useSwapStore();
   const [isCustomSelected, setIsCustomSelected] = useState(false);
+  const { isConnected } = useAccount();
 
   const selectPredefinedOption = (value: number) => {
+    if (!isConnected) return;
     setIsCustomSelected(false);
     setSlippage(value);
   };
 
   const selectCustomOption = () => {
+    if (!isConnected) return;
     setIsCustomSelected(true);
   };
 
   const updateSlippage = (event: ChangeEvent<HTMLInputElement>) => {
+    if (!isConnected) return;
     setIsCustomSelected(true);
     setSlippage(Number(event.target.value));
   };
@@ -35,8 +40,10 @@ const SwapSlippage: FC = () => {
           />
         ))}
         <div
-          className={`text-center px-4 py-3 cursor-pointer ${
-            isCustomSelected ? "rounded-md border-white/20 border" : ""
+          className={`text-center px-auto py-3 cursor-pointer ${
+            isCustomSelected || !isConnected
+              ? "rounded-md border-white/20 border"
+              : ""
           }`}
           onClick={selectCustomOption}
         >
@@ -49,12 +56,14 @@ const SwapSlippage: FC = () => {
           type="number"
           value={slippage.toString()}
           className={`w-full bg-transparent px-3 focus:outline-none ${
-            !isCustomSelected ? "cursor-not-allowed" : "cursor-text"
+            !isCustomSelected || !isConnected
+              ? "cursor-not-allowed"
+              : "cursor-text"
           }`}
           onChange={updateSlippage}
           placeholder="0.0"
           min={0}
-          disabled={!isCustomSelected}
+          disabled={!isCustomSelected || !isConnected}
         />
         <span className="w-16 border-l border-white/20 px-4 py-3 text-center">
           %

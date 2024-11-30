@@ -3,6 +3,7 @@ import { formatUnits, parseUnits } from "viem";
 import QuoterABI from "@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json";
 import { Address, zeroAddress } from "viem";
 import { useEffect, useState } from "react";
+import { QUOTER_CONTRACT_ADDRESS } from "@/lib/utils/constants";
 
 interface QuoteResult {
   formattedQuote: string;
@@ -16,9 +17,6 @@ const useQuote = (
   tokenOutAddress: Address | undefined,
   amount: string
 ): QuoteResult => {
-  const QUOTER_CONTRACT_ADDRESS =
-    "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6" as Address;
-
   // Validate inputs
   const isValidInput =
     tokenInAddress &&

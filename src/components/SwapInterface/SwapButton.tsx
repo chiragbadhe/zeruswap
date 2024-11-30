@@ -16,7 +16,7 @@ const SwapButton: React.FC<SwapButtonProps> = ({
       {isConnected ? (
         <button
           onClick={handleSwap}
-          className="w-full bg-violet-700 text-white py-3 px-4 rounded hover:bg-violet-600 transition duration-300"
+          className="w-full bg-violet-700 text-white py-3 px-4 rounded hover:bg-violet-600 transition duration-300 mt-3"
         >
           Swap
         </button>

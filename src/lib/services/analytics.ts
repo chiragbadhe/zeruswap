@@ -1,4 +1,3 @@
-// src/lib/services/analytics.ts
 import axios from "axios";
 
 const COINGECKO_API = "https://api.coingecko.com/api/v3";
@@ -10,6 +9,7 @@ export async function fetchTokenPriceHistory(
   tokenBAddress: string,
   timeframe: "24h" | "7d" | "30d"
 ) {
+  let isLoading = true;
   try {
     const response = await axios.get(
       `${COINGECKO_API}/coins/${tokenAAddress}/market_chart`,
@@ -20,14 +20,21 @@ export async function fetchTokenPriceHistory(
         },
       }
     );
-
-    return response.data.prices.map(([timestamp, price]: [number, number]) => ({
-      timestamp,
-      price,
-    }));
+    isLoading = false;
+    return {
+      data: response.data.prices.map(
+        ([timestamp, price]: [number, number]) => ({
+          timestamp,
+          price,
+        })
+      ),
+      error: null,
+      isLoading,
+    };
   } catch (error) {
     console.error("Failed to fetch price history", error);
-    return [];
+    isLoading = false;
+    return { data: [], error, isLoading };
   }
 }
 
@@ -35,26 +42,33 @@ export async function fetchTokenAnalytics(
   tokenAAddress: string,
   tokenBAddress: string
 ) {
+  let isLoading = true;
   try {
     const [priceData, volumeData, liquidityData] = await Promise.all([
       fetchTokenPrice(tokenAAddress),
       fetchTokenVolume(tokenAAddress, tokenBAddress),
       fetchLiquidityDepth(tokenAAddress, tokenBAddress),
     ]);
-
+    isLoading = false;
     return {
-      price: priceData.price,
-      volume24h: volumeData.volume,
-      liquidityDepth: liquidityData.depth,
-      priceChange24h: priceData.priceChange24h,
+      data: {
+        price: priceData.data.price,
+        volume24h: volumeData.data.volume,
+        liquidityDepth: liquidityData.data.depth,
+        priceChange24h: priceData.data.priceChange24h,
+      },
+      error: null,
+      isLoading,
     };
   } catch (error) {
     console.error("Failed to fetch token analytics", error);
-    throw error;
+    isLoading = false;
+    return { data: null, error, isLoading };
   }
 }
 
 async function fetchTokenPrice(tokenAddress: string) {
+  let isLoading = true;
   try {
     const response = await axios.get(
       `${COINGECKO_API}/simple/token_price/ethereum`,
@@ -66,19 +80,25 @@ async function fetchTokenPrice(tokenAddress: string) {
         },
       }
     );
-
+    isLoading = false;
     const tokenData = response.data[tokenAddress.toLowerCase()];
     return {
-      price: tokenData.usd,
-      priceChange24h: tokenData.usd_24h_change,
+      data: {
+        price: tokenData.usd,
+        priceChange24h: tokenData.usd_24h_change,
+      },
+      error: null,
+      isLoading,
     };
   } catch (error) {
     console.error("Failed to fetch token price", error);
-    return { price: 0, priceChange24h: 0 };
+    isLoading = false;
+    return { data: { price: 0, priceChange24h: 0 }, error, isLoading };
   }
 }
 
 async function fetchTokenVolume(tokenAAddress: string, tokenBAddress: string) {
+  let isLoading = true;
   try {
     const response = await axios.post(UNISWAP_SUBGRAPH, {
       query: `
@@ -89,13 +109,16 @@ async function fetchTokenVolume(tokenAAddress: string, tokenBAddress: string) {
         }
       `,
     });
-
+    isLoading = false;
     return {
-      volume: response.data.data.pool.volumeUSD,
+      data: { volume: response.data.data.pool.volumeUSD },
+      error: null,
+      isLoading,
     };
   } catch (error) {
     console.error("Failed to fetch token volume", error);
-    return { volume: 0 };
+    isLoading = false;
+    return { data: { volume: 0 }, error, isLoading };
   }
 }
 
@@ -103,6 +126,7 @@ async function fetchLiquidityDepth(
   tokenAAddress: string,
   tokenBAddress: string
 ) {
+  let isLoading = true;
   try {
     const response = await axios.post(UNISWAP_SUBGRAPH, {
       query: `
@@ -113,13 +137,16 @@ async function fetchLiquidityDepth(
         }
       `,
     });
-
+    isLoading = false;
     return {
-      depth: response.data.data.pool.totalValueLockedUSD,
+      data: { depth: response.data.data.pool.totalValueLockedUSD },
+      error: null,
+      isLoading,
     };
   } catch (error) {
     console.error("Failed to fetch liquidity depth", error);
-    return { depth: 0 };
+    isLoading = false;
+    return { data: { depth: 0 }, error, isLoading };
   }
 }
 
@@ -133,7 +160,8 @@ interface Trade {
 export async function fetchRecentTrades(
   tokenAAddress: string,
   tokenBAddress: string
-): Promise<Trade[]> {
+): Promise<{ data: Trade[]; error: any; isLoading: boolean }> {
+  let isLoading = true;
   try {
     const response = await axios.post(UNISWAP_SUBGRAPH, {
       query: `
@@ -147,15 +175,20 @@ export async function fetchRecentTrades(
         }
       `,
     });
-
-    return response.data.data.trades.map((trade: Trade) => ({
-      time: trade.time,
-      type: trade.type,
-      amount: trade.amount,
-      price: trade.price,
-    }));
+    isLoading = false;
+    return {
+      data: response.data.data.trades.map((trade: Trade) => ({
+        time: trade.time,
+        type: trade.type,
+        amount: trade.amount,
+        price: trade.price,
+      })),
+      error: null,
+      isLoading,
+    };
   } catch (error) {
     console.error("Failed to fetch recent trades", error);
-    return [];
+    isLoading = false;
+    return { data: [], error, isLoading };
   }
 }

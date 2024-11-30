@@ -15,7 +15,7 @@ interface AnalyticsChartProps {
 
 const AnalyticsChart: React.FC<AnalyticsChartProps> = ({ priceHistory }) => {
   return (
-    <div className="h-80 w-full">
+    <div className="h-80 w-full px-[12px]">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={priceHistory}>
           <XAxis
@@ -23,26 +23,30 @@ const AnalyticsChart: React.FC<AnalyticsChartProps> = ({ priceHistory }) => {
             tickFormatter={(timestamp) =>
               new Date(timestamp).toLocaleDateString()
             }
-            stroke="#ffffff"
+            stroke="#545759"
           />
           <YAxis
             domain={["dataMin", "dataMax"]}
             tickFormatter={(value) => formatCurrency(value)}
-            stroke="#ffffff"
+            stroke="#545759"
           />
           <Tooltip
             formatter={(value: number) => [formatCurrency(value), "Price"]}
             labelFormatter={(timestamp: number) =>
               new Date(timestamp).toLocaleString()
             }
-            contentStyle={{ backgroundColor: "#333", borderColor: "#333" }}
+            contentStyle={{
+              backgroundColor: "#292D30",
+              borderColor: "#333",
+              borderRadius: "8px",
+            }}
             itemStyle={{ color: "#fff" }}
             labelStyle={{ color: "#fff" }}
           />
           <Line
             type="monotone"
             dataKey="price"
-            stroke="#8884d8"
+            stroke="#6D27D9"
             strokeWidth={2}
           />
         </LineChart>

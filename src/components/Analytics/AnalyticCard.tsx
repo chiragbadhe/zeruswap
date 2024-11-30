@@ -4,12 +4,14 @@ interface AnalyticCardProps {
   label: string;
   value: string;
   positive?: boolean;
+  isLoading: boolean;
 }
 
 const AnalyticCard: React.FC<AnalyticCardProps> = ({
   label,
   value,
   positive,
+  isLoading,
 }) => {
   return (
     <div className="border border-white/20 p-4 rounded-lg">
@@ -23,7 +25,11 @@ const AnalyticCard: React.FC<AnalyticCardProps> = ({
             : "text-gray-200"
         }`}
       >
-        {value}
+        {isLoading ? (
+          <div className="animate-pulse bg-gray-300/30 h-6 w-20"></div>
+        ) : (
+          value
+        )}
       </p>
     </div>
   );

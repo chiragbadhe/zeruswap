@@ -18,8 +18,8 @@ const TokenInput: React.FC<TokenInputProps> = ({
   amount,
   setAmount,
   text,
-  disabled = false,
-  isLoading = false,
+  disabled,
+  isLoading,
 }) => {
   const { balance, isLoading: balanceLoading } = useBalanceByTokenType();
   const { tokenIn } = useSwapStore();
@@ -31,7 +31,7 @@ const TokenInput: React.FC<TokenInputProps> = ({
     setAmount(Number(e.target.value));
   };
 
-  const renderPriceImpact = () => (
+  const renderPriceImpactUsd = () => (
     <p className="flex space-x-[4px]">
       <span>
         {priceLoading ? (
@@ -44,23 +44,35 @@ const TokenInput: React.FC<TokenInputProps> = ({
     </p>
   );
 
-  const renderBalance = () => (
-    <div className="space-x-[4px] flex">
-      <span>Balance:</span>
-      <span>
-        {balanceLoading ? (
-          <div className="animate-pulse bg-gray-300/30 h-6 w-6"></div>
-        ) : (
-          balance?.formatted
-        )}
-      </span>
-    </div>
-  );
+  const renderBalance = () => {
+    if (!tokenIn) {
+      return (
+        <div className="space-x-[4px] flex">
+          <span>Balance:</span>
+          <span>0.00000000</span>
+        </div>
+      );
+    }
+    return (
+      <div className="space-x-[4px] flex">
+        <span>Balance:</span>
+        <span>
+          {balanceLoading ? (
+            <div className="animate-pulse bg-gray-300/30 h-6 w-6"></div>
+          ) : balance?.formatted ? (
+            Number(balance.formatted).toFixed(8)
+          ) : (
+            "0.00000000"
+          )}
+        </span>
+      </div>
+    );
+  };
 
   return (
-    <div className="mb-6 p-4 border border-white/20 rounded-lg">
+    <div className="mb-6 p-4 border border-white/20 rounded-lg ">
       <div className="flex justify-between">
-        <div className="flex flex-col space-y-[8px]">
+        <div className="flex flex-col space-y-[8px]  opacity-50">
           <p>{text}</p>
           {isLoading ? (
             <div className="animate-pulse bg-gray-300/30 h-6 w-20"></div>
@@ -78,10 +90,12 @@ const TokenInput: React.FC<TokenInputProps> = ({
         </div>
         <TokenSelector type={type} />
       </div>
-      <div className="flex justify-between mt-[12px] opacity-50">
-        {renderPriceImpact()}
-        {type === "in" && renderBalance()}
-      </div>
+      {type === "in" && (
+        <div className="flex justify-between mt-[12px] opacity-50">
+          {renderPriceImpactUsd()}
+          {renderBalance()}
+        </div>
+      )}
     </div>
   );
 };
