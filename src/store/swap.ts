@@ -6,6 +6,8 @@ export interface Token {
   name: string;
   address: string;
   balance: string;
+  decimals: number;
+  logoURI: string;
 }
 
 interface SwapState {
@@ -42,8 +44,8 @@ export const useSwapStore = create<SwapState>((set) => ({
   setTokenOut: (token) => set({ tokenOut: token }),
   setAmount: (amount) => set({ amount }),
   setSlippage: (slippage) => set({ slippage }),
-  setGasFee: (fee) => set({ gasFee: fee }),
-  setPriceImpact: (impact) => set({ priceImpact: impact }),
+  setGasFee: (gasFee) => set({ gasFee }),
+  setPriceImpact: (priceImpact) => set({ priceImpact }),
   setRoute: (route) => set({ route }),
-  setTransactionStatus: (status) => set({ transactionStatus: status }),
+  setTransactionStatus: (transactionStatus) => set({ transactionStatus }),
 }));
