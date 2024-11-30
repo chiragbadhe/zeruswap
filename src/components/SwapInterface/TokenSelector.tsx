@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { useSwapStore, Token } from "../../store/swap";
 import { X } from "lucide-react";
 import useFetchTokens from "../../hooks/useFetchTokens";
-import Image from "next/image";
 
 interface TokenSelectorProps {
   type: "in" | "out";
@@ -47,12 +46,10 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({ type }) => {
       >
         {selectedToken ? (
           <>
-            <Image
+            <img
               src={selectedToken.logoURI}
               alt={`${selectedToken.symbol} logo`}
               className="w-6 h-6 mr-2"
-              width={24}
-              height={24}
             />
             {selectedToken.symbol}
           </>
@@ -90,12 +87,10 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({ type }) => {
                     className="p-2 cursor-pointer hover:bg-purple-700/20 flex items-center"
                     onClick={() => handleTokenSelect(token)}
                   >
-                    <Image
+                    <img
                       src={token.logoURI}
                       alt={`${token.symbol} logo`}
                       className="w-6 h-6 mr-2"
-                      width={24}
-                      height={24}
                     />
                     {token.symbol} - {token.name}
                   </li>
