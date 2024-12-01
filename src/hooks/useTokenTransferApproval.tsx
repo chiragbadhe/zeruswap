@@ -3,6 +3,7 @@ import { Address, parseUnits } from "viem";
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { useSwapStore } from "@/store/swap";
 import { useState } from "react";
+import { ERC20_ABI } from "@/abi/ERC20_ABI";
 
 export enum TransactionState {
   Idle = "Idle",
@@ -20,32 +21,10 @@ export function useTokenTransferApproval() {
   const { writeContract, isPending, isSuccess, isError } = useWriteContract();
   const { amountIn } = useSwapStore();
 
-  const ERC20_ABI = [
-    {
-      constant: false,
-      inputs: [
-        {
-          name: "_spender",
-          type: "address",
-        },
-        {
-          name: "_value",
-          type: "uint256",
-        },
-      ],
-      name: "approve",
-      outputs: [
-        {
-          name: "",
-          type: "bool",
-        },
-      ],
-      type: "function",
-    },
-  ];
-
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
-  const receipt = useWaitForTransactionReceipt({ hash: transactionHash as unknown as `0x${string}` });
+  const receipt = useWaitForTransactionReceipt({
+    hash: transactionHash as unknown as `0x${string}`,
+  });
 
   const handleApprove = async (token: Token): Promise<TransactionState> => {
     try {
@@ -66,11 +45,12 @@ export function useTokenTransferApproval() {
     }
   };
 
-  const transactionState = receipt?.status === "success"
-    ? TransactionState.Success
-    : receipt?.status === "error"
-    ? TransactionState.Failed
-    : TransactionState.Pending;
+  const transactionState =
+    receipt?.status === "success"
+      ? TransactionState.Success
+      : receipt?.status === "error"
+      ? TransactionState.Failed
+      : TransactionState.Pending;
 
   return {
     approveToken: handleApprove,
