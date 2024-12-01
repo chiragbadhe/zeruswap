@@ -2,10 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Token } from "@/store/swap";
-import {
-  fetchTokenPriceHistory,
-  fetchTokenAnalytics,
-} from "@/lib/services/analytics";
+import { fetchTokenAnalytics } from "@/lib/services/analytics";
 import AnalyticsDisplay from "../Analytics/AnalyticsDisplay";
 import AnalyticsChart from "../Analytics/AnalyticsChart";
 import RecentTradesTable from "../Analytics/RecentTradesTable";
@@ -15,11 +12,6 @@ import { motion } from "framer-motion";
 interface TokenPairAnalyticsProps {
   tokenA: Token;
   tokenB: Token;
-}
-
-interface PriceHistoryData {
-  timestamp: number;
-  price: number;
 }
 
 interface TokenAnalytics {
@@ -33,7 +25,6 @@ export default function TokenPairAnalytics({
   tokenA,
   tokenB,
 }: TokenPairAnalyticsProps) {
-  const [priceHistory, setPriceHistory] = useState<PriceHistoryData[]>([]);
   const [analytics, setAnalytics] = useState<TokenAnalytics | null>(null);
   const [timeframe, setTimeframe] = useState<"24h" | "7d" | "30d">("24h");
   const [error, setError] = useState<string | null>(null);
@@ -47,14 +38,13 @@ export default function TokenPairAnalytics({
           fetchTokenAnalytics(tokenA.address, tokenB.address),
         ]);
 
-        // const [historyData] = await Promise.all([
-        //   fetchTokenPriceHistory(tokenA.address, tokenB.address, timeframe),
-        // ]);
-        // setPriceHistory(historyData.data);
-
         setAnalytics(analyticsData.data);
-      } catch (err) {
-        setError("Failed to load analytics data");
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("Failed to load analytics data");
+        }
         console.error(err);
       } finally {
         setLoading(false);

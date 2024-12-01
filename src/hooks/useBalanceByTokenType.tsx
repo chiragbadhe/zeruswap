@@ -12,7 +12,7 @@ import { useAccount, useBalance } from "wagmi";
   optimization and returned with loading and error states.
 */
 
-export const useBalanceByTokenType = () => {
+export function useBalanceByTokenType() {
   const { address } = useAccount();
   const { tokenIn } = useSwapStore();
 
@@ -34,4 +34,4 @@ export const useBalanceByTokenType = () => {
     error: result.error,
     refetch: result.refetch,
   };
-};
+}

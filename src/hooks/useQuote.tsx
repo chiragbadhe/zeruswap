@@ -1,9 +1,10 @@
 import { useReadContract } from "wagmi";
 import { formatUnits, parseUnits } from "viem";
 import QuoterABI from "@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json";
-import { Address, zeroAddress } from "viem";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { QUOTER_CONTRACT_ADDRESS } from "@/lib/utils/constants";
+import { Token } from "@/store/swap";
+import { showToast } from "@/lib/utils/toast"; // Import showToast function
 
 interface QuoteResult {
   formattedQuote: string;
@@ -13,65 +14,97 @@ interface QuoteResult {
 }
 
 const useQuote = (
-  tokenInAddress: Address | undefined,
-  tokenOutAddress: Address | undefined,
-  amount: string
+  tokenIn: Token | null,
+  tokenOut: Token | null,
+  amount: string,
+  feeTier: number = 3000 // Default to 0.3% pool
 ): QuoteResult => {
-  // Validate inputs
-  const isValidInput =
-    tokenInAddress &&
-    tokenOutAddress &&
-    tokenInAddress !== zeroAddress &&
-    tokenOutAddress !== zeroAddress &&
-    parseFloat(amount) > 0;
+  const isValidInput = useMemo(() => {
+    return (
+      tokenIn &&
+      tokenOut &&
+      tokenIn.address !== "0x0000000000000000000000000000000000000000" &&
+      tokenOut.address !== "0x0000000000000000000000000000000000000000" &&
+      parseFloat(amount) > 0 &&
+      tokenIn.decimals !== undefined &&
+      tokenOut.decimals !== undefined
+    );
+  }, [tokenIn, tokenOut, amount]);
+
+  const parsedAmount = useMemo(() => {
+    if (!isValidInput) return undefined;
+    try {
+      return parseUnits(amount, tokenIn!.decimals).toString();
+    } catch (error) {
+      console.error("Amount parsing error:", error);
+      showToast("error", "Parsing error");
+      return undefined;
+    }
+  }, [amount, tokenIn, isValidInput]);
 
   const {
     data: quotedAmountOut,
-    error,
+    error: contractError,
     isPending,
-  } = useReadContract({
-    address: QUOTER_CONTRACT_ADDRESS,
-    abi: QuoterABI.abi,
-    functionName: "quoteExactInputSingle",
-    args: isValidInput
-      ? [
-          tokenInAddress,
-          tokenOutAddress,
-          3000, // Fee tier (assumes 0.3% pool)
-          parseUnits(amount, 18).toString(),
-          0,
-        ]
-      : undefined,
-    query: {
-      enabled: isValidInput,
-    },
-  });
+  } = useReadContract(
+    isValidInput
+      ? {
+          address: QUOTER_CONTRACT_ADDRESS,
+          abi: QuoterABI.abi,
+          functionName: "quoteExactInputSingle",
+          args: [
+            tokenIn!.address as `0x${string}`,
+            tokenOut!.address as `0x${string}`,
+            feeTier,
+            parsedAmount!,
+            0,
+          ],
+          query: {
+            enabled: true,
+            retry: 2,
+            retryDelay: 1000,
+          },
+        }
+      : { query: { enabled: false } }
+  );
 
-  // State to store formatted quote
-  const [formattedQuote, setFormattedQuote] = useState<string>("0");
-
-  // Effect to handle quote formatting
-  useEffect(() => {
-    try {
-      if (quotedAmountOut) {
-        const formatted = formatUnits(BigInt(quotedAmountOut.toString()), 18);
-        setFormattedQuote(formatted);
-      } else {
-        setFormattedQuote("0");
+  const [formattedQuote, processedError] = useMemo(() => {
+    if (contractError) {
+      const errorMessage = contractError.message.toLowerCase();
+      if (errorMessage.includes("revert")) {
+        if (errorMessage.includes("insufficient liquidity")) {
+          const error = new Error("Insufficient liquidity");
+          showToast("error", error.message);
+          return ["0", error];
+        }
+        if (errorMessage.includes("no pools")) {
+          const error = new Error("No pools found");
+          showToast("error", error.message);
+          return ["0", error];
+        }
+        const error = new Error("Quote call failed");
+        showToast("error", error.message);
+        return ["0", error];
       }
+      showToast("error", contractError.message);
+      return ["0", contractError];
+    }
+
+    try {
+      if (quotedAmountOut && isValidInput) {
+        const formatted = formatUnits(
+          BigInt(quotedAmountOut.toString()),
+          tokenOut!.decimals
+        );
+        return [formatted, null];
+      }
+      return ["0", null];
     } catch (formatError) {
       console.error("Quote formatting error:", formatError);
-      setFormattedQuote("0");
+      showToast("error", "Formatting error");
+      return ["0", new Error("Failed to format quote")];
     }
-  }, [quotedAmountOut]);
-
-  // Comprehensive error handling
-  const processedError = (() => {
-    if (!isValidInput) {
-      return new Error("Invalid input: Check token addresses and amount");
-    }
-    return error || null;
-  })();
+  }, [quotedAmountOut, tokenOut, isValidInput, contractError]);
 
   return {
     formattedQuote,

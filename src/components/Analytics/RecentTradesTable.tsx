@@ -1,46 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { Token } from "@/store/swap";
-// import { fetchRecentTrades } from "@/lib/services/analytics";
+import React from "react";
 import { recentTrades } from "@/lib/dummyData/dummy";
 
-interface RecentTradesTableProps {
-  tokenA: Token;
-  tokenB: Token;
-}
-
-interface Trade {
-  time: string;
-  type: string;
-  amount: number;
-  price: number;
-}
-
-const RecentTradesTable: React.FC<RecentTradesTableProps> = ({
-  tokenA,
-  tokenB,
-}) => {
-  /*
-    The following code has been commented out because Uniswap has deprecated this API.
-    now using dummy data for recent trades.
-
-    const [trades, setTrades] = useState<Trade[]>([]);
-
-    useEffect(() => {
-      async function getRecentTrades() {
-        try {
-          const recentTrades = await fetchRecentTrades(
-            tokenA.address,
-            tokenB.address
-          );
-          setTrades(recentTrades as unknown as Trade[]);
-        } catch (error) {
-          console.error("Error fetching recent trades:", error);
-        }
-      }
-      getRecentTrades();
-    }, [tokenA, tokenB]);
-  */
-
+const RecentTradesTable: React.FC = () => {
   const trades = recentTrades;
   return (
     <div className="px-6 mt-4">

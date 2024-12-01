@@ -1,115 +1,105 @@
 "use client";
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { useSwapStore } from "../../store/swap";
 import { useAccount, useReadContract, useSendTransaction } from "wagmi";
 import TokenInputWrapper from "./TokenInputWrapper";
 import SlippageSetting from "../SlippageSetting";
-import SwapButton from "./SwapButton";
-import PriceImpactDisplay from "./DisplayData";
 import { parseUnits } from "viem";
 import useQuote from "@/hooks/useQuote";
 import { Pool, Route, SwapOptions, SwapRouter, Trade } from "@uniswap/v3-sdk";
-import {
-  CurrencyAmount,
-  Percent,
-  Token,
-  TradeType,
-  computePriceImpact,
-} from "@uniswap/sdk-core";
+import { CurrencyAmount, Percent, TradeType } from "@uniswap/sdk-core";
 import IUniswapV3PoolABI from "@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json";
 import { UNISWAP_ROUTER_ADDRESS } from "@/lib/utils/constants";
-import useGasFee from "@/hooks/useGasFee";
+import useGasEstimate from "@/hooks/useGasEstimate";
 import { showToast } from "@/lib/utils/toast";
 import TokenPairAnalytics from "../Analytics";
 import DisplayData from "./DisplayData";
-import { useGasEstimate } from "@/hooks/useGasEstimate";
+import useSwapData from "@/hooks/useSwapData";
+import { motion } from "framer-motion";
+import { useTokenTransferApproval } from "@/hooks/useTokenTransferApproval";
+import SwapActionButton from "./SwapActionButton";
 
 const SwapInterface: React.FC = () => {
   const {
     tokenIn,
     tokenOut,
-    amount,
+    amountIn,
     priceImpact,
-    transactionStatus,
-    setAmount,
+    setAmountIn,
+    setPriceImpact,
+    setRoute,
+    route,
+    amountOut,
+    setAmountOut,
+    poolAddress,
     setTransactionStatus,
     slippage,
     setTokenIn,
     setTokenOut,
   } = useSwapStore();
 
-  const [amountOut, setAmountOut] = useState<string>("");
   const { isConnected, address } = useAccount();
-  const [poolAddress, setPoolAddress] = useState<string>("");
-
-  const { maxFeePerGas, maxPriorityFeePerGas } = useGasFee();
   const { sendTransaction } = useSendTransaction();
-
-  console.log(tokenIn, tokenOut);
-
-  const { gasEstimate, estimateGasCost, error } = useGasEstimate();
-
   const { formattedQuote: quoteData, isLoading: isQuoteLoading } = useQuote(
-    tokenIn?.address as `0x${string}`,
-    tokenOut?.address as `0x${string}`,
-    amount
+    tokenIn,
+    tokenOut,
+    amountIn
   );
 
   const { data: poolSlot0 } = useReadContract({
     address: poolAddress as `0x${string}`,
     abi: IUniswapV3PoolABI.abi,
     functionName: "slot0",
-    query: {
-      enabled: !!poolAddress,
-    },
+    query: { enabled: !!poolAddress },
   });
 
   const { data: liquidityData } = useReadContract({
     address: poolAddress as `0x${string}`,
     abi: IUniswapV3PoolABI.abi,
     functionName: "liquidity",
-    query: {
-      enabled: !!poolAddress,
-    },
+    query: { enabled: !!poolAddress },
   });
 
   const showAnalytics = useMemo(
     () => !!(tokenIn && tokenOut),
     [tokenIn, tokenOut]
   );
+  const swapData = useSwapData();
+  const { maxFees } = useGasEstimate();
 
-  const handleSwap = useCallback(async () => {
-    if (!tokenIn || !tokenOut || !address || !amount) {
+  const [isReviewing, setIsReviewing] = useState(false);
+  const [isReviewComplete, setIsReviewComplete] = useState(false);
+  const [methodParameters, setMethodParameters] = useState<ReturnType<
+    typeof SwapRouter.swapCallParameters
+  > | null>(null);
+  const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
+
+  const handleReviewSwap = useCallback(async () => {
+    if (!swapData || !address) {
       showToast("error", "Please select tokens and connect wallet");
+      setTransactionStatus("Please select tokens and connect wallet");
       return;
     }
 
+    if (!slippage) {
+      showToast("error", "Please select slippage");
+      setTransactionStatus("Please select slippage");
+      return;
+    }
+
+    const { token0, token1 } = swapData;
+
     try {
+      setLoadingMessage("Preparing swap...");
       setTransactionStatus("Preparing swap...");
-
-      const token0 = new Token(
-        tokenIn.chainId,
-        tokenIn.address as `0x${string}`,
-        tokenIn.decimals,
-        tokenIn.symbol,
-        tokenIn.name
-      );
-
-      const token1 = new Token(
-        tokenIn.chainId,
-        tokenOut.address as `0x${string}`,
-        tokenOut.decimals,
-        tokenOut.symbol,
-        tokenOut.name
-      );
-
-      const poolAddress = Pool.getAddress(token0, token1, 3000);
-      setPoolAddress(poolAddress);
+      setIsReviewing(true);
 
       const [sqrtPriceX96, tick] = Array.isArray(poolSlot0)
         ? poolSlot0
         : [undefined, undefined];
+      if (tick === undefined) throw new Error("Invariant failed: TICK");
+
       const pool = new Pool(
         token0,
         token1,
@@ -121,9 +111,8 @@ const SwapInterface: React.FC = () => {
 
       const tradeAmount = CurrencyAmount.fromRawAmount(
         token0,
-        parseUnits(amount, token0.decimals).toString()
+        parseUnits(amountIn, token0.decimals).toString()
       );
-
       const swapRoute = new Route([pool], token0, token1);
 
       const uncheckedTrade = Trade.createUncheckedTrade({
@@ -133,62 +122,99 @@ const SwapInterface: React.FC = () => {
         tradeType: TradeType.EXACT_INPUT,
       });
 
-      const priceImpact = uncheckedTrade.priceImpact.toSignificant(4);
+      setPriceImpact(uncheckedTrade.priceImpact.toSignificant(4));
 
       const swapRouteDetails = swapRoute.pools.map((pool) => ({
         token0: pool.token0.symbol,
         token1: pool.token1.symbol,
         fee: pool.fee,
       }));
-
-      console.log(priceImpact, swapRouteDetails);
+      setRoute(
+        swapRouteDetails.map(
+          (detail) => `${detail.token0}-${detail.token1}:${detail.fee}`
+        )
+      );
 
       const options: SwapOptions = {
-        slippageTolerance: new Percent(Math.floor(slippage * 100)),
+        slippageTolerance: new Percent(Math.floor(slippage * 100), 10000),
         deadline: Math.floor(Date.now() / 1000) + 60 * 20,
         recipient: address,
       };
 
-      const methodParameters = SwapRouter.swapCallParameters(
-        [uncheckedTrade],
-        options
+      setMethodParameters(
+        SwapRouter.swapCallParameters([uncheckedTrade], options)
       );
-
-      await estimateGasCost({
-        to: UNISWAP_ROUTER_ADDRESS,
-        data: methodParameters.calldata as `0x${string}`,
-        value: BigInt(methodParameters.value),
-        maxFeePerGas: maxPriorityFeePerGas,
-      });
-
-      console.log(priceImpact, swapRouteDetails, gasEstimate);
-
-      // sendTransaction({
-      //   data: methodParameters.calldata as `0x${string}`,
-      //   to: UNISWAP_ROUTER_ADDRESS,
-      //   value: BigInt(methodParameters.value),
-      //   maxFeePerGas: maxFeePerGas,
-      //   maxPriorityFeePerGas: maxPriorityFeePerGas,
-      // });
+      setIsReviewComplete(true);
+      setTransactionStatus("Review complete");
     } catch (error: unknown) {
       console.error("Swap Preparation Error:", error);
-      showToast("error", "Swap failed: " + (error as Error).message);
-      setTransactionStatus("Swap failed");
+      showToast(
+        "error",
+        "Swap preparation failed: " + (error as Error).message
+      );
+      setTransactionStatus(
+        "Swap preparation failed: " + (error as Error).message
+      );
+    } finally {
+      setIsReviewing(false);
+      setLoadingMessage(null);
     }
   }, [
-    tokenIn,
-    tokenOut,
+    swapData,
     address,
-    amount,
     poolSlot0,
     liquidityData,
     amountOut,
-    maxFeePerGas,
-    maxPriorityFeePerGas,
-    sendTransaction,
     setTransactionStatus,
     slippage,
+    setPriceImpact,
+    setRoute,
+    amountIn,
   ]);
+
+  const { approveToken, isPending } = useTokenTransferApproval();
+
+  const approveTokenTransfer = async () => {
+    setLoadingMessage("Approving token...");
+    return await approveToken({
+      address: tokenIn?.address as `0x${string}`,
+      decimals: tokenIn?.decimals as number,
+    });
+  };
+
+  const handleSwap = async () => {
+    if (!methodParameters) {
+      showToast(
+        "error",
+        "Method parameters not set. Please review the swap first."
+      );
+      return;
+    }
+
+    try {
+      const approvalSuccess = await approveTokenTransfer();
+      if (!approvalSuccess) {
+        showToast("error", "Token approval failed. Please try again.");
+        return;
+      }
+
+      setLoadingMessage("Sending transaction...");
+      await sendTransaction({
+        data: methodParameters.calldata as `0x${string}`,
+        to: UNISWAP_ROUTER_ADDRESS,
+        value: BigInt(Math.floor(Number(methodParameters.value))),
+        maxFeePerGas: BigInt(Math.floor(maxFees.maxFeePerGas)),
+        maxPriorityFeePerGas: BigInt(Math.floor(maxFees.maxPriorityFeePerGas)),
+      });
+
+      showToast("success", "Swap transaction sent successfully!");
+    } catch (error) {
+      console.error("Transaction Error:", error);
+      showToast("error", "Transaction failed: " + (error as Error).message);
+    } finally {
+      setLoadingMessage(null);
+    }
+  };
 
   const handleInterchange = () => {
     if (tokenIn && tokenOut) {
@@ -196,6 +222,12 @@ const SwapInterface: React.FC = () => {
       setTokenOut(tokenIn);
     }
   };
+
+  useEffect(() => {
+    if (loadingMessage) {
+      showToast("info", loadingMessage);
+    }
+  }, [loadingMessage]);
 
   return (
     <div className="flex-col px-[12px] md:space-x-[12px] space-x-0 flex sm:flex-row items-start justify-center py-6 container max-w-7xl mx-auto">
@@ -205,25 +237,48 @@ const SwapInterface: React.FC = () => {
         </h2>
 
         <TokenInputWrapper
-          amount={amount}
+          amount={amountIn}
           amountOut={quoteData}
-          isLoading={!!tokenIn && !!tokenOut ? isQuoteLoading : false}
-          setAmount={setAmount}
+          isLoading={
+            !!tokenIn && !!tokenOut && !!amountIn ? isQuoteLoading : false
+          }
+          setAmount={setAmountIn}
           setAmountOut={setAmountOut}
           handleInterchange={handleInterchange}
         />
 
         <SlippageSetting />
-        <DisplayData text="Price Impact" value={priceImpact} />
-        <DisplayData text="Gas Estimation" value={priceImpact} />
-        <DisplayData text="Route" value={priceImpact} />
 
-        <SwapButton
-          transactionStatus={transactionStatus}
+        {isReviewComplete && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <DisplayData
+              text="Price Impact"
+              value={priceImpact?.toString() ?? null}
+            />
+            <DisplayData
+              text="Gas Estimation"
+              value={maxFees.maxFeePerGas.toFixed(2) + " Gwei"}
+            />
+            <DisplayData text="Route" value={route.join(" -> ")} />
+          </motion.div>
+        )}
+
+        <SwapActionButton
           isConnected={isConnected}
-          handleSwap={handleSwap}
+          isReviewComplete={isReviewComplete}
+          isPending={isPending}
+          isReviewing={isReviewing}
+          loadingMessage={loadingMessage}
+          onApprove={approveTokenTransfer}
+          onSwap={handleSwap}
+          onReview={handleReviewSwap}
         />
       </div>
+
       <div
         className={`transition-opacity duration-300 w-full md:w-auto ${
           showAnalytics ? "opacity-100" : "opacity-0"

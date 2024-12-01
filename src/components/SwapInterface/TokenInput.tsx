@@ -79,7 +79,7 @@ const TokenInput: React.FC<TokenInputProps> = ({
           ) : (
             <input
               type="number"
-              placeholder="0.00"
+              placeholder="0"
               min={0}
               value={amount}
               onChange={handleAmountChange}

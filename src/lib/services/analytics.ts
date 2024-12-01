@@ -34,7 +34,7 @@ export async function fetchTokenPriceHistory(
   } catch (error) {
     console.error("Failed to fetch price history", error);
     isLoading = false;
-    return { data: [], error, isLoading };
+    return { data: [], error: error as Error, isLoading };
   }
 }
 
@@ -63,7 +63,7 @@ export async function fetchTokenAnalytics(
   } catch (error) {
     console.error("Failed to fetch token analytics", error);
     isLoading = false;
-    return { data: null, error, isLoading };
+    return { data: null, error: error as Error, isLoading };
   }
 }
 
@@ -93,7 +93,11 @@ async function fetchTokenPrice(tokenAddress: string) {
   } catch (error) {
     console.error("Failed to fetch token price", error);
     isLoading = false;
-    return { data: { price: 0, priceChange24h: 0 }, error, isLoading };
+    return {
+      data: { price: 0, priceChange24h: 0 },
+      error: error as Error,
+      isLoading,
+    };
   }
 }
 
@@ -118,7 +122,7 @@ async function fetchTokenVolume(tokenAAddress: string, tokenBAddress: string) {
   } catch (error) {
     console.error("Failed to fetch token volume", error);
     isLoading = false;
-    return { data: { volume: 0 }, error, isLoading };
+    return { data: { volume: 0 }, error: error as Error, isLoading };
   }
 }
 
@@ -146,7 +150,7 @@ async function fetchLiquidityDepth(
   } catch (error) {
     console.error("Failed to fetch liquidity depth", error);
     isLoading = false;
-    return { data: { depth: 0 }, error, isLoading };
+    return { data: { depth: 0 }, error: error as Error, isLoading };
   }
 }
 
@@ -160,7 +164,7 @@ interface Trade {
 export async function fetchRecentTrades(
   tokenAAddress: string,
   tokenBAddress: string
-): Promise<{ data: Trade[]; error: any; isLoading: boolean }> {
+): Promise<{ data: Trade[]; error: Error | null; isLoading: boolean }> {
   let isLoading = true;
   try {
     const response = await axios.post(UNISWAP_SUBGRAPH, {
@@ -189,6 +193,6 @@ export async function fetchRecentTrades(
   } catch (error) {
     console.error("Failed to fetch recent trades", error);
     isLoading = false;
-    return { data: [], error, isLoading };
+    return { data: [], error: error as Error, isLoading };
   }
 }

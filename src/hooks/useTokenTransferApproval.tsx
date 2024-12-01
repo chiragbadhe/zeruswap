@@ -2,6 +2,7 @@ import { UNISWAP_ROUTER_ADDRESS } from "@/lib/utils/constants";
 import { Address, parseUnits } from "viem";
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { useSwapStore } from "@/store/swap";
+import { useState } from "react";
 
 export enum TransactionState {
   Idle = "Idle",
@@ -17,8 +18,7 @@ interface Token {
 
 export function useTokenTransferApproval() {
   const { writeContract, isPending, isSuccess, isError } = useWriteContract();
-
-  const { amount } = useSwapStore();
+  const { amountIn } = useSwapStore();
 
   const ERC20_ABI = [
     {
@@ -43,45 +43,40 @@ export function useTokenTransferApproval() {
       type: "function",
     },
   ];
-  const SWAP_ROUTER_ADDRESS = UNISWAP_ROUTER_ADDRESS; // Your swap router address
-  const TOKEN_AMOUNT_TO_APPROVE_FOR_TRANSFER = amount; // Example amount
+
+  const [transactionHash, setTransactionHash] = useState<string | null>(null);
+  const receipt = useWaitForTransactionReceipt({ hash: transactionHash as unknown as `0x${string}` });
 
   const handleApprove = async (token: Token): Promise<TransactionState> => {
     try {
-      // Parse the amount to the token's decimals
-      const approveAmount = parseUnits(
-        TOKEN_AMOUNT_TO_APPROVE_FOR_TRANSFER.toString(),
-        token.decimals
-      );
-
-      // Trigger the approval transaction
+      const approveAmount = parseUnits(amountIn.toString(), token.decimals);
       const hash = writeContract({
         address: token.address,
         abi: ERC20_ABI,
         functionName: "approve",
-        args: [SWAP_ROUTER_ADDRESS, approveAmount],
+        args: [UNISWAP_ROUTER_ADDRESS, approveAmount],
         gas: BigInt(12),
       });
 
-      // Wait for transaction confirmation
-      const receipt = useWaitForTransactionReceipt({
-        hash: hash as unknown as `0x${string}`,
-      });
-
-      // Determine transaction state based on receipt
-      return receipt.status === "success"
-        ? TransactionState.Success
-        : TransactionState.Failed;
+      setTransactionHash(hash as unknown as string);
+      return TransactionState.Pending;
     } catch (error) {
       console.error("Approval Error:", error);
       return TransactionState.Failed;
     }
   };
 
+  const transactionState = receipt?.status === "success"
+    ? TransactionState.Success
+    : receipt?.status === "error"
+    ? TransactionState.Failed
+    : TransactionState.Pending;
+
   return {
     approveToken: handleApprove,
     isPending,
     isSuccess,
     isError,
+    transactionState,
   };
 }

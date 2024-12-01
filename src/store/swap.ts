@@ -13,39 +13,48 @@ export interface Token {
 interface SwapState {
   tokenIn: Token | null;
   tokenOut: Token | null;
-  amount: string;
+  amountIn: string;
+  amountOut: string;
   slippage: number;
   gasFee: string;
   priceImpact: string;
   route: string[];
   transactionStatus: string;
+  poolAddress: string;
 
   setTokenIn: (token: Token) => void;
   setTokenOut: (token: Token) => void;
-  setAmount: (amount: string) => void;
+  setAmountIn: (amountIn: string) => void;
+  setAmountOut: (amountout: string) => void;
+
   setSlippage: (slippage: number) => void;
   setGasFee: (fee: string) => void;
   setPriceImpact: (impact: string) => void;
   setRoute: (route: string[]) => void;
   setTransactionStatus: (status: string) => void;
+  setPoolAddress: (address: string) => void;
 }
 
 export const useSwapStore = create<SwapState>((set) => ({
   tokenIn: null,
   tokenOut: null,
-  amount: "",
+  amountIn: "",
+  amountOut: "",
   slippage: 0,
   gasFee: "",
   priceImpact: "",
   route: [],
   transactionStatus: "",
+  poolAddress: "",
 
   setTokenIn: (token) => set({ tokenIn: token }),
   setTokenOut: (token) => set({ tokenOut: token }),
-  setAmount: (amount) => set({ amount }),
+  setAmountIn: (amountIn) => set({ amountIn }),
+  setAmountOut: (amountOut) => set({ amountOut }),
   setSlippage: (slippage) => set({ slippage }),
   setGasFee: (gasFee) => set({ gasFee }),
   setPriceImpact: (priceImpact) => set({ priceImpact }),
   setRoute: (route) => set({ route }),
   setTransactionStatus: (transactionStatus) => set({ transactionStatus }),
+  setPoolAddress: (poolAddress) => set({ poolAddress }),
 }));
