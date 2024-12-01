@@ -26,10 +26,14 @@ Make sure you have the following installed:
 
 2. Install the dependencies:
 
-   ```bash
-   yarn install
-   ```
+```bash
+  yarn install
+```
 
-### Running the Development Server
+### Running the project
 
-First, run the development server:
+```bash
+  yarn dev
+```
+
+
